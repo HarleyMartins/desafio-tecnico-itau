@@ -1,26 +1,27 @@
 package dev.harleymartins.desafioTecnicoItau;
 
+import org.springframework.stereotype.Repository;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-
+@Repository
 public class TransacaoRepository {
 
-    List<TransacaoRequest> listaDeTransacoes = new ArrayList<>();
+    private final List<TransacaoRequest> transacoes = new CopyOnWriteArrayList<>();
 
     // salvar os dados em uma lista
-    public void salvarDados(TransacaoRequest transacaoRequest){
-        listaDeTransacoes.add(transacaoRequest);
+    public void salvar(TransacaoRequest transacao){
+        transacoes.add(transacao);
     }
 
 
-    // apaagar a lista depois de 60s
-    public void limparDados(TransacaoRequest transacaoRequest){
-        listaDeTransacoes.clear();
+    public List<TransacaoRequest> listar(){
+        return List.copyOf(transacoes);
     }
 
-    // apagar todas as transacoes da lista
-    public void deletarDados(){
-
+    public void limpar(){
+        transacoes.clear();
     }
 }

@@ -1,22 +1,20 @@
 package dev.harleymartins.desafioTecnicoItau;
+
 import lombok.Getter;
-
-
 
 @Getter
 public class EstatisticaDTO {
     private final long count;
-    private final Double avg;
-    private final Double max;
-    private final Double min;
-    private final Double sum;
+    private final double sum;
+    private final double avg;
+    private final double min;
+    private final double max;
 
-
-    public EstatisticaDTO(long count, Double avg, Double max, Double min, Double sum){
+    public EstatisticaDTO(long count, double sum, double avg, double min, double max) {
         this.count = count;
-        this.avg = avg;
-        this.max = max;
-        this.min = min;
         this.sum = sum;
+        this.avg = avg;
+        this.min = min;
+        this.max = max;
     }
 }

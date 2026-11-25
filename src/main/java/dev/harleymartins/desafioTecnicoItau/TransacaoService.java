@@ -1,40 +1,52 @@
 package dev.harleymartins.desafioTecnicoItau;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.DoubleSummaryStatistics;
 
 @Service
 public class TransacaoService {
 
-    public void validarTransacao(TransacaoRequest transacaoRequest){
+    @Autowired
+    private TransacaoRepository transacaoRepository;
 
-        // VALOR MAIOR OU IGUAL A 0
-        if(transacaoRequest.getValor().compareTo(BigDecimal.ZERO) < 0 ){
-            throw new IllegalArgumentException("Erro: Isso não é uma transação válida, transações devem ter valor maior do que zero");
+    public void validarTransacao(TransacaoRequest transacao) {
 
-        } else{
-
+        if (transacao.getValor() == null) {
+            throw new IllegalArgumentException("O valor não pode ser nulo");
+        }
+        if (transacao.getDataHora() == null) {
+            throw new IllegalArgumentException("A data e hora não podem ser nulas");
         }
 
-
-        //DATA MENOR OU IGUAL A DATA DE HOJE
-        if(transacaoRequest.getDataHora().isAfter(OffsetDateTime.now())){
-            throw new IllegalArgumentException("Erro: A data da transação não pode ser no futuro");
+        if (transacao.getValor().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("O valor não pode ser negativo");
         }
-
-
-        //VALOR PRESENTE
-        if(transacaoRequest.getValor() == null){
-            throw new IllegalArgumentException("Erro: o valor não pode ser nulo");
+        if (transacao.getDataHora().isAfter(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("A data da transação não pode ser no futuro");
         }
-
-        //DATAHORA PRESENTE
-        if(transacaoRequest.getDataHora() == null){
-            throw new IllegalArgumentException("Erro: a data e hora não podem ser nulas");
-        }
-
     }
 
+    public EstatisticaDTO calcularEstatisticas() {
+        OffsetDateTime limite = OffsetDateTime.now().minusSeconds(60);
+
+        DoubleSummaryStatistics stats = transacaoRepository.listar().stream()
+                .filter(t -> !t.getDataHora().isBefore(limite))
+                .mapToDouble(t -> t.getValor().doubleValue())
+                .summaryStatistics();
+
+        if (stats.getCount() == 0) {
+            return new EstatisticaDTO(0, 0.0, 0.0, 0.0, 0.0);
+        }
+
+        return new EstatisticaDTO(
+                stats.getCount(),
+                stats.getSum(),
+                stats.getAverage(),
+                stats.getMin(),
+                stats.getMax());
+    }
 }

@@ -109,11 +109,11 @@ Resposta `200 OK`:
 
 ```json
 {
-   "count": 10,
-   "sum": 1234.56,
-   "avg": 123.456,
-   "min": 12.34,
-   "max": 123.56
+    "count": 10,
+    "sum": 1234.56,
+    "avg": 123.456,
+    "min": 12.34,
+    "max": 123.56
 }
 ```
 
@@ -127,25 +127,72 @@ Resposta `200 OK`:
 
 Quando não há transações nos últimos 60 segundos, todos os campos retornam `0`.
 
-## Exemplos de uso
+## Como testar pelo Postman
 
-```bash
-# Registrar uma transação
-curl -i -X POST http://localhost:8080/transacao \
-  -H "Content-Type: application/json" \
-  -d '{"valor": 123.45, "dataHora": "2020-08-07T12:34:56.789-03:00"}'
+Com a aplicação em execução (`http://localhost:8080`), crie as requisições abaixo no Postman. Nas requisições `POST`, abra a aba **Body**, escolha **raw** e, na lista ao lado, **JSON**. O status da resposta aparece no canto superior direito da área de resposta.
 
-# Consultar as estatísticas
-curl -i http://localhost:8080/estatistica
+### Registrar uma transação
 
-# Apagar todas as transações
-curl -i -X DELETE http://localhost:8080/transacao
-```
+- **Método e URL:** `POST` `http://localhost:8080/transacao`
+- **Body (raw, JSON):**
 
-Também é possível testar pelo Postman: nas requisições `POST`, use **Body > raw > JSON**. A variável dinâmica `{{$isoTimestamp}}` gera a data e hora atuais, o que é útil para testar a janela de 60 segundos:
+  ```json
+  {
+      "valor": 123.45,
+      "dataHora": "2020-08-07T12:34:56.789-03:00"
+  }
+  ```
+
+- **Resposta esperada:** `201 Created`, sem corpo.
+
+Para registrar uma transação com a data e hora **atuais**, use a variável dinâmica do Postman `{{$isoTimestamp}}`. Isso é útil para testar a janela de 60 segundos:
 
 ```json
-{"valor": 100.50, "dataHora": "{{$isoTimestamp}}"}
+{
+    "valor": 100.50,
+    "dataHora": "{{$isoTimestamp}}"
+}
+```
+
+### Consultar as estatísticas
+
+- **Método e URL:** `GET` `http://localhost:8080/estatistica`
+- **Resposta esperada:** `200 OK`, com o JSON de `count`, `sum`, `avg`, `min` e `max`.
+
+### Apagar todas as transações
+
+- **Método e URL:** `DELETE` `http://localhost:8080/transacao`
+- **Resposta esperada:** `200 OK`, sem corpo.
+
+### Casos de erro do `POST /transacao`
+
+| Body enviado                                                                 | Resposta esperada          |
+|------------------------------------------------------------------------------|----------------------------|
+| `{}`                                                                         | `422`, sem corpo           |
+| `{"valor": -1, "dataHora": "2020-08-07T12:34:56.789-03:00"}`                 | `422`, sem corpo           |
+| `{"valor": 10, "dataHora": "2099-01-01T00:00:00.000Z"}` (data no futuro)     | `422`, sem corpo           |
+| `{"valor": 0, "dataHora": "2020-08-07T12:34:56.789-03:00"}` (valor zero)     | `201`, sem corpo           |
+| `{valor:` (JSON inválido)                                                    | `400`, sem corpo           |
+| `{"valor": "abc", "dataHora": "2020-08-07T12:34:56.789-03:00"}` (tipo errado) | `400`, sem corpo           |
+
+### Roteiro para validar a janela de 60 segundos
+
+Execute em sequência, em menos de um minuto:
+
+1. `DELETE /transacao`: `200`.
+2. `POST /transacao` com `{"valor": 100.50, "dataHora": "{{$isoTimestamp}}"}`: `201`.
+3. `POST /transacao` com `{"valor": 50, "dataHora": "{{$isoTimestamp}}"}`: `201`.
+4. `POST /transacao` com `{"valor": 999, "dataHora": "2020-08-07T12:34:56.789-03:00"}`: `201`. A transação é aceita, mas está fora dos últimos 60 segundos.
+5. `GET /estatistica`: o resultado deve ignorar a transação de 999.
+
+```json
+{
+   "count": 2,
+   "sum": 150.5,
+   "avg": 75.25,
+   "min": 50.0,
+   "max": 100.5
+}
 ```
 
 ## Estrutura do projeto
